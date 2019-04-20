@@ -1,8 +1,6 @@
-import sys
+import sys, getopt
 from PIL import Image
 import numpy as np
-
-f = 1 #np.maximum(1, int(round(np.minimum(width, height) / 256)))
 
 def pooling(mat, ksize, method='mean', pad=False):
     m, n = mat.shape[:2]
@@ -37,7 +35,7 @@ def conv2d(a, f):
 def mad(x, axis=None):
     return np.mean(np.absolute(x - np.mean(x, axis)), axis)
 
-def mdsi(file1, file2):
+def mdsi(file1, file2, f, alpha):
     C1 = 140
     C2 = 55
     C3 = 550
@@ -54,6 +52,8 @@ def mdsi(file1, file2):
     width, height = image1.size
     image1 = np.frombuffer(image1.tobytes(), dtype=np.uint8).reshape(height, width, 3)
     image2 = np.frombuffer(image2.tobytes(), dtype=np.uint8).reshape(height, width, 3)
+
+    f = np.maximum(1, int(round(np.minimum(width, height) / 256))) if f==0 else f
 
     R1 = pooling(image1[:,:,0], f)
     R2 = pooling(image2[:,:,0], f)
@@ -90,14 +90,41 @@ def mdsi(file1, file2):
 
     CS = (2. * (H1 * H2 + M1 * M2) + C3).clip(min=0) / (np.power(H1, 2) + np.power(H2, 2) + np.power(M1, 2) + np.power(M2, 2) + C3)
 
-    alpha = 0.6
     GCS = alpha * GS_HVS + (1. - alpha) * CS
 
     return np.power(mad(np.power(GCS, 0.25)), 0.5)
 
+def usage():
+    print("Usage: python mdsi.py [options] <reference_image> <image1> [<image2>...]\n")
+    print("    Options:\n")
+    print("    -f[n]  Downscaling factor (0 - auto). Default: 0")
+    print("    -y     Compare only luma channel")
+    print("    -h     Show this help")
+
 def main():
-    for arg in sys.argv[2:]:
-        score = mdsi(sys.argv[1], arg)
+    f = 0
+    alpha = 0.6
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "hyf:")
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        sys.exit(2)
+
+    for o, a in opts:
+        if o == "-y":
+            alpha = 1
+        elif o == "-f":
+            f = int(a)
+        elif o in ("-h"):
+            usage()
+            sys.exit()
+        else:
+            assert False
+
+    for arg in args[1:]:
+        score = mdsi(args[0], arg, f, alpha)
         try:
             ind = arg.rindex('/') + 1
         except ValueError:
