@@ -66,6 +66,7 @@ def mdsi(file1, file2, f, alpha):
     L2 = np.pad(0.299 * R2 + 0.587 * G2 + 0.114 * B2, ((1,1), (1,1)), "edge")
     F = 0.5 * (L1 + L2)
 
+    # With RGB to YUV coefficients set alpha to 0.66
     H1 = 0.30 * R1 + 0.04 * G1 - 0.35 * B1
     H2 = 0.30 * R2 + 0.04 * G2 - 0.35 * B2
     M1 = 0.34 * R1 - 0.60 * G1 + 0.17 * B1
